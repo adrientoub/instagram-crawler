@@ -1,5 +1,3 @@
-#! /usr/bin/env ruby
-
 require 'fileutils'
 require_relative './common'
 
@@ -52,14 +50,3 @@ def download_hashtag(hashtag, limit)
   end
   puts "Downloaded #{size} elements"
 end
-
-Common.initialize_downloads(8)
-limit = 1000
-if ARGV.empty?
-  download_hashtag('cats', limit)
-else
-  ARGV.each do |arg|
-    download_hashtag(arg, limit)
-  end
-end
-Common.wait

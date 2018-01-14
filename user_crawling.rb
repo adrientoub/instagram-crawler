@@ -1,5 +1,3 @@
-#! /usr/bin/env ruby
-
 require 'fileutils'
 require_relative './common'
 
@@ -50,13 +48,3 @@ def download_user(username)
   end
   puts "Downloaded #{size} elements"
 end
-
-Common.initialize_downloads(8)
-if ARGV.empty?
-  download_user('adrientoub')
-else
-  ARGV.each do |arg|
-    download_user(arg)
-  end
-end
-Common.wait

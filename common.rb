@@ -1,5 +1,6 @@
 require 'net/http'
 require 'logger'
+require 'json'
 
 class Common
   def self.call_api(uri)
@@ -68,7 +69,7 @@ class Common
     response = Net::HTTP.get_response uri
     if response.code.to_i >= 399
       if try > 0
-        @logger.puts "Downloading #{uri} ended in #{response.code}. Retrying #{try} times."
+        @logger.warn "Downloading #{uri} ended in #{response.code}. Retrying #{try} times."
         download(uri, try - 1)
       else
         response.body
