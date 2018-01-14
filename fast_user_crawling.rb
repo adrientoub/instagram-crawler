@@ -5,16 +5,30 @@ require 'json'
 require 'fileutils'
 require 'logger'
 
-def user_url(tag, page)
+def user_url(username, page)
   if page
-    URI "https://www.instagram.com/#{tag}/?__a=1&max_id=#{page}"
+    URI "https://www.instagram.com/#{username}/?__a=1&max_id=#{page}"
   else
-    URI "https://www.instagram.com/#{tag}/?__a=1"
+    URI "https://www.instagram.com/#{username}/?__a=1"
   end
 end
 
-def download(uri)
-  Net::HTTP.get uri
+def video_url(code)
+  URI "https://www.instagram.com/p/#{code}/?__a=1"
+end
+
+def download(uri, try = 3)
+  response = Net::HTTP.get_response uri
+  if response.code.to_i >= 399
+    if try > 0
+      $logger.puts "Downloading #{uri} ended in #{response.code}. Retrying #{try} times."
+      download(uri, try - 1)
+    else
+      response.body
+    end
+  else
+    response.body
+  end
 end
 
 def download_to_file(uri, path)
@@ -24,17 +38,25 @@ def download_to_file(uri, path)
   end
 end
 
-def add_to_downloads(uri, path = nil)
-  to_add = if path.nil?
-    uri
-  else
-    [{
-      uri: uri,
-      path: path
-    }]
+def call_api(uri)
+  begin
+    user_call = download(uri)
+    JSON.parse(user_call)
+  rescue => e
+    $logger.warn "Download failed (#{e}) retrying"
+    sleep 1
+    retry
   end
+end
+
+def add_to_downloads(url, path)
+  obj = {
+    uri: URI(url),
+    path: path
+  }
+
   $semaphore.synchronize do
-    $downloads += to_add
+    $downloads << obj
   end
 end
 
@@ -67,31 +89,25 @@ def wait
 end
 
 def download_user_page(username, page = nil)
-  begin
-    user_call = download(user_url(username, page))
-    user_json = JSON.parse(user_call)
-  rescue
-    $logger.warn "Download failed, retrying"
-    sleep 1
-    retry
-  end
+  user_json = call_api(user_url(username, page))
 
   user_info = user_json['user']
   folder = username + '/'
   FileUtils.mkdir_p(folder)
-  add_to_downloads(URI(user_info['profile_pic_url_hd']), "#{folder}profile.jpg")
+  add_to_downloads(user_info['profile_pic_url_hd'], "#{folder}profile.jpg")
   if user_info['is_private']
     puts 'This user is private'
   end
   nodes = user_info['media']['nodes']
   return 0 if nodes.empty?
   size = nodes.size
-  add_to_downloads(nodes.map do |node|
-    {
-      uri: URI(node['display_src']),
-      path: "#{folder}#{node['id']}.jpg"
-    }
-  end)
+  nodes.each do |node|
+    if node['__typename'] == 'GraphVideo'
+      video_json = call_api(video_url(node['code']))
+      add_to_downloads(video_json['graphql']['shortcode_media']['video_url'], "#{folder}#{node['id']}.mp4")
+    end
+    add_to_downloads(node['display_src'], "#{folder}#{node['id']}.jpg")
+  end
 
   if user_info['media']['page_info']['has_next_page']
     [size, user_info['media']['page_info']['end_cursor']]
