@@ -21,12 +21,7 @@ def download_hashtag_page(hashtag, page)
     folder = "##{hashtag}/#{part}/"
     FileUtils.mkdir_p(folder)
     edges.each do |edge|
-      node = edge['node']
-      if node['is_video']
-        video_json = Common.call_api(Common.video_url(node['shortcode']))
-        Common.add_to_downloads(video_json['graphql']['shortcode_media']['video_url'], "#{folder}#{node['id']}.mp4")
-      end
-      Common.add_to_downloads(node['display_url'], "#{folder}#{node['id']}.jpg")
+      Common.download_node(edge['node'], folder)
     end
     size += edges.size
   end
@@ -39,14 +34,13 @@ def download_hashtag_page(hashtag, page)
 end
 
 def download_hashtag(hashtag, limit)
-  puts "Downloading ##{hashtag}"
+  Common.info "Queuing ##{hashtag}"
   next_page = nil
   size = 0
   loop do
     sze, next_page = download_hashtag_page(hashtag, next_page)
     size += sze
-    puts "Downloaded #{size} on ##{hashtag}"
+    Common.info "Queued #{size} media for ##{hashtag}."
     break if next_page.nil? || size > limit
   end
-  puts "Downloaded #{size} elements"
 end

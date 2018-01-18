@@ -8,7 +8,7 @@ class Common
       user_call = download(uri)
       JSON.parse(user_call)
     rescue => e
-      @logger.warn "Download failed (#{e}) retrying"
+      @logger.warn "Download failed for URI: #{uri} (#{e}) retrying"
       sleep 1
       retry
     end
@@ -57,12 +57,38 @@ class Common
   def self.wait
     @done = true
     @threads.each(&:join)
-    puts "Done in #{Time.now - @start}s"
+    Common.info "Done in #{Time.now - @start}s"
   end
-
 
   def self.video_url(code)
     URI "https://www.instagram.com/p/#{code}/?__a=1"
+  end
+
+  def self.download_image(node, folder)
+    Common.add_to_downloads(node['display_src'] || node['display_url'], "#{folder}#{node['id']}.jpg")
+  end
+
+  def self.download_node(node, folder)
+    if node['__typename'] == 'GraphSidecar'
+      sidecar_json = Common.call_api(Common.video_url(node['code'] || node['shortcode']))
+      sidecar_json['graphql']['shortcode_media']['edge_sidecar_to_children']['edges'].each do |edge|
+        download_node(edge['node'], folder)
+      end
+    elsif node['__typename'] == 'GraphVideo' || node['is_video']
+      if node['video_url']
+        Common.add_to_downloads(node['video_url'], "#{folder}#{node['id']}.mp4")
+      else
+        video_json = Common.call_api(Common.video_url(node['code'] || node['shortcode']))
+        Common.add_to_downloads(video_json['graphql']['shortcode_media']['video_url'], "#{folder}#{node['id']}.mp4")
+      end
+      download_image(node, folder)
+    else
+      download_image(node, folder)
+    end
+  end
+
+  def self.info(str)
+    @logger.info str
   end
 
   def self.download(uri, try = 3)
@@ -70,6 +96,7 @@ class Common
     if response.code.to_i >= 399
       if try > 0
         @logger.warn "Downloading #{uri} ended in #{response.code}. Retrying #{try} times."
+        sleep 1
         download(uri, try - 1)
       else
         response.body

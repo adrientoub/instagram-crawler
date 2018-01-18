@@ -13,6 +13,9 @@ def download_user_page(username, page = nil)
   user_json = Common.call_api(user_url(username, page))
 
   user_info = user_json['user']
+  if page.nil?
+    Common.info "Found #{user_info['media']['count']} media for #{username}."
+  end
   folder = username + '/'
   FileUtils.mkdir_p(folder)
   Common.add_to_downloads(user_info['profile_pic_url_hd'], "#{folder}profile.jpg")
@@ -23,28 +26,24 @@ def download_user_page(username, page = nil)
   return 0 if nodes.empty?
   size = nodes.size
   nodes.each do |node|
-    if node['__typename'] == 'GraphVideo'
-      video_json = Common.call_api(video_url(node['code']))
-      Common.add_to_downloads(video_json['graphql']['shortcode_media']['video_url'], "#{folder}#{node['id']}.mp4")
-    end
-    Common.add_to_downloads(node['display_src'], "#{folder}#{node['id']}.jpg")
+    Common.download_node(node, folder)
   end
 
   if user_info['media']['page_info']['has_next_page']
-    [size, user_info['media']['page_info']['end_cursor']]
+    [nodes.size, user_info['media']['page_info']['end_cursor']]
   else
-    [size, nil]
+    [nodes.size, nil]
   end
 end
 
 def download_user(username)
-  puts "Downloading #{username}"
+  Common.info "Downloading #{username}"
   next_page = nil
   size = 0
   loop do
     sze, next_page = download_user_page(username, next_page)
     size += sze
+    Common.info "Queued #{size} media for #{username}."
     break if next_page.nil?
   end
-  puts "Downloaded #{size} elements"
 end
