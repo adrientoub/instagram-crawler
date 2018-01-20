@@ -7,10 +7,14 @@ def hashtag_url(tag, page)
   else
     URI "https://www.instagram.com/explore/tags/#{tag}/?__a=1"
   end
+rescue URI::InvalidURIError
+  Common.error "Invalid hashtag ##{tag}"
+  nil
 end
 
 def download_hashtag_page(hashtag, page)
   hashtag_json = Common.call_api(hashtag_url(hashtag, page))
+  return [0, nil] if hashtag_json.nil?
   hashtag_info = hashtag_json['graphql']['hashtag']
   size = 0
   %w(media top_posts).each do |part|

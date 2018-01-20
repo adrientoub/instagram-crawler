@@ -4,14 +4,17 @@ require 'json'
 
 class Common
   def self.call_api(uri)
-    begin
-      user_call = download(uri)
-      JSON.parse(user_call)
-    rescue => e
-      @logger.warn "Download failed for URI: #{uri} (#{e}) retrying"
-      sleep 1
-      retry
-    end
+    return if uri.nil?
+
+    user_call = download(uri)
+    JSON.parse(user_call)
+  rescue JSON::ParserError => e
+    @logger.warn "JSON parsing failed for URI: #{uri}, not retrying."
+    nil
+  rescue => e
+    @logger.warn "Download failed for URI: #{uri} (#{e}) retrying"
+    sleep 1
+    retry
   end
 
   def self.video_url(code)
@@ -71,15 +74,19 @@ class Common
   def self.download_node(node, folder)
     if node['__typename'] == 'GraphSidecar'
       sidecar_json = Common.call_api(Common.video_url(node['code'] || node['shortcode']))
-      sidecar_json['graphql']['shortcode_media']['edge_sidecar_to_children']['edges'].each do |edge|
-        download_node(edge['node'], folder)
+      unless sidecar_json.nil?
+        sidecar_json['graphql']['shortcode_media']['edge_sidecar_to_children']['edges'].each do |edge|
+          download_node(edge['node'], folder)
+        end
       end
     elsif node['__typename'] == 'GraphVideo' || node['is_video']
       if node['video_url']
         Common.add_to_downloads(node['video_url'], "#{folder}#{node['id']}.mp4")
       else
         video_json = Common.call_api(Common.video_url(node['code'] || node['shortcode']))
-        Common.add_to_downloads(video_json['graphql']['shortcode_media']['video_url'], "#{folder}#{node['id']}.mp4")
+        unless video_json.nil?
+          Common.add_to_downloads(video_json['graphql']['shortcode_media']['video_url'], "#{folder}#{node['id']}.mp4")
+        end
       end
       download_image(node, folder)
     else
@@ -89,6 +96,10 @@ class Common
 
   def self.info(str)
     @logger.info str
+  end
+
+  def self.error(str)
+    @logger.error str
   end
 
   def self.download(uri, try = 3)
@@ -103,6 +114,14 @@ class Common
       end
     else
       response.body
+    end
+  rescue => e
+    if try > 0
+      @logger.warn "Downloading #{uri} ended in #{e}. Retrying #{try} times."
+      sleep 1
+      download(uri, try - 1)
+    else
+      ""
     end
   end
 

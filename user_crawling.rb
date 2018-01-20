@@ -7,10 +7,14 @@ def user_url(username, page)
   else
     URI "https://www.instagram.com/#{username}/?__a=1"
   end
+rescue URI::InvalidURIError
+  Common.error "Invalid username #{username}"
+  nil
 end
 
 def download_user_page(username, page = nil)
   user_json = Common.call_api(user_url(username, page))
+  return [0, nil] if user_json.nil?
 
   user_info = user_json['user']
   if page.nil?
