@@ -109,7 +109,11 @@ class Common
     if response.code.to_i >= 399
       if try > 0
         @logger.warn "Downloading #{uri} ended in #{response.code}. Retrying #{try} times."
-        sleep 1
+        if response.code == 429
+          sleep 5
+        else
+          sleep 1
+        end
         download(uri, try - 1)
       else
         response.body
