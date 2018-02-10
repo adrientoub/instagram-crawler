@@ -22,6 +22,7 @@ class Common
   end
 
   def self.add_to_downloads(url, path)
+    return false if File.exist?(path)
     obj = {
       uri: URI(url),
       path: path
@@ -30,6 +31,7 @@ class Common
     @semaphore.synchronize do
       @downloads << obj
     end
+    true
   end
 
   def self.initialize_downloads(thread_count)
@@ -126,7 +128,6 @@ class Common
   end
 
   def self.download_to_file(uri, path)
-    return if File.exist?(path)
     File.open(path, 'wb') do |file|
       file.write download(uri)
     end

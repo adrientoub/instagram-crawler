@@ -20,6 +20,8 @@ Install Ruby on your computer and launch the following command:
 
 ```
 ruby ./instagram_crawler.rb [USERNAME...] [#HASHTAG...]
+
+ruby ./instagram_crawler.rb [--update] [--update-users] [--update-hashtags]
 ```
 
 You can put any number of usernames and hashtags in any order.
@@ -29,6 +31,9 @@ It will download the content of the instagram account or hashtag to
 id followed by .jpg for images and .mp4 for videos. For instagram accounts it
 will also download the profile picture to `./username/profile.jpg`.
 
+You can use `--update`, `--update-hashtags` or `--update-users` to respectively
+update all downloaded users and hashtags, hashtags or users.
+
 ### Examples
 
 On Bash to use it you can do:
@@ -36,9 +41,17 @@ On Bash to use it you can do:
 ./instagram_crawler.rb adrientoub '#ruby' microsoft '#bash'
 # or
 ./instagram_crawler.rb adrientoub \#ruby microsoft \#bash
+# or
+./instagram_crawler.rb --update-users
+# or
+./instagram_crawler.rb --update
 ```
 
 On Powershell to use it you can do:
 ```powershell
 ruby .\instagram_crawler.rb adrientoub "#ruby" microsoft "#powershell"
+# or
+ruby .\instagram_crawler.rb --update-users
+# or
+ruby .\instagram_crawler.rb --update
 ```
