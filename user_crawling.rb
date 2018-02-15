@@ -22,15 +22,15 @@ def download_user_page(username, page = nil, update = false)
   end
   folder = username + '/'
   FileUtils.mkdir_p(folder)
-  Common.add_to_downloads(user_info['profile_pic_url_hd'], "#{folder}profile.jpg")
+  Common.add_to_downloads(user_info['profile_pic_url_hd'], "#{folder}profile.jpg", nil)
   if user_info['is_private']
-    puts 'This user is private'
+    Common.warn 'This user is private'
   end
   nodes = user_info['media']['nodes']
   return 0 if nodes.empty?
   size = nodes.size
   nodes.each_with_index do |node, i|
-    if !Common.download_node(node, folder) && update
+    if !Common.download_node(node, folder, nil) && update
       return [i, nil]
     end
   end
