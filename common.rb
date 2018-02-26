@@ -3,10 +3,10 @@ require 'logger'
 require 'json'
 
 class Common
-  def self.call_api(uri)
+  def self.call_api(uri, use_cookie = false)
     return if uri.nil?
 
-    user_call = download(uri)
+    user_call = download(uri, use_cookie)
     JSON.parse(user_call)
   rescue JSON::ParserError => e
     @logger.warn "JSON parsing failed for URI: #{uri}, not retrying."
@@ -79,21 +79,21 @@ class Common
     Common.add_to_downloads(node['display_src'] || node['display_url'], "#{folder}#{node['id']}.jpg", timestamp)
   end
 
-  def self.download_node(node, folder, timestamp)
+  def self.download_node(node, folder, timestamp, use_cookie)
     if node['__typename'] == 'GraphSidecar'
-      sidecar_json = Common.call_api(Common.video_url(node['code'] || node['shortcode']))
+      sidecar_json = Common.call_api(Common.video_url(node['code'] || node['shortcode']), use_cookie)
       unless sidecar_json.nil?
         media = sidecar_json['graphql']['shortcode_media']
         timestamp ||= media['taken_at_timestamp'] || media['date']
         sidecar_json['graphql']['shortcode_media']['edge_sidecar_to_children']['edges'].each do |edge|
-          download_node(edge['node'], folder, timestamp)
+          download_node(edge['node'], folder, timestamp, use_cookie)
         end
       end
     elsif node['__typename'] == 'GraphVideo' || node['is_video']
       if node['video_url']
         Common.add_to_downloads(node['video_url'], "#{folder}#{node['id']}.mp4", timestamp)
       else
-        video_json = Common.call_api(Common.video_url(node['code'] || node['shortcode']))
+        video_json = Common.call_api(Common.video_url(node['code'] || node['shortcode']), use_cookie)
         unless video_json.nil?
           media = video_json['graphql']['shortcode_media']
           timestamp ||= media['taken_at_timestamp'] || media['date']
@@ -118,18 +118,27 @@ class Common
     @logger.warn str
   end
 
-  def self.download(uri, try = 3, first = true)
-    response = Net::HTTP.get_response uri
+  private
+
+  def self.download(uri, use_cookie = false, try = 3, first = true)
+    response = if ENV['COOKIE'] && use_cookie
+      http = Net::HTTP.new(uri.hostname, uri.port)
+      http.use_ssl = true
+      http.get(uri, 'Cookie' => ENV['COOKIE'])
+    else
+      Net::HTTP.get_response uri
+    end
+
     if response.code.to_i >= 399
       if try > 0
         @logger.warn "Downloading #{uri} ended in #{response.code}. Retrying #{try} times."
         if response.code.to_i == 429
           sleep 5
-          return download(uri, 10, false) if first
+          return download(uri, use_cookie, 10, false) if first
         else
           sleep 1
         end
-        download(uri, try - 1, first)
+        download(uri, use_cookie, try - 1, first)
       else
         response.body
       end
@@ -140,7 +149,7 @@ class Common
     if try > 0
       @logger.warn "Downloading #{uri} ended in #{e}. Retrying #{try} times."
       sleep 1
-      download(uri, try - 1, first)
+      download(uri, use_cookie, try - 1, first)
     else
       ""
     end

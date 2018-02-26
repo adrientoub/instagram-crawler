@@ -25,7 +25,7 @@ def download_hashtag_page(hashtag, page)
     folder = "##{hashtag}/#{part}/"
     FileUtils.mkdir_p(folder)
     edges.each do |edge|
-      Common.download_node(edge['node'], folder, nil)
+      Common.download_node(edge['node'], folder, nil, false)
     end
     size += edges.size
   end

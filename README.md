@@ -34,6 +34,10 @@ will also download the profile picture to `./username/profile.jpg`.
 You can use `--update`, `--update-hashtags` or `--update-users` to respectively
 update all downloaded users and hashtags, hashtags or users.
 
+If you want to download private users you have access to, you can set the
+`COOKIE` environment variable to the complete value that is sent by your browser
+when you browse [https://www.instagram.com](https://www.instagram.com).
+
 ### Examples
 
 On Bash to use it you can do:

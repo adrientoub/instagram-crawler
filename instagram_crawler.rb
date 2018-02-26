@@ -4,7 +4,7 @@ require './hashtag_crawling'
 require './user_crawling'
 require './update'
 
-LIMIT = 1000
+LIMIT = ENV['LIMIT']&.to_i || 1000
 
 def print_usage
   $stderr.puts 'Usage: ./instagram_crawler.rb [USERNAME...] [#HASHTAG...]'
