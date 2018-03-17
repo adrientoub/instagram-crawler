@@ -1,0 +1,6 @@
+language: ruby
+rvm: 2.5.0
+script:
+  - ./instagram_crawler.rb adrientoub
+  - LIMIT=100 ./instagram_crawler.rb \#paris
+  - ./instagram_crawler.rb --update-users
