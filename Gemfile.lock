@@ -4,9 +4,12 @@ GEM
     mini_portile2 (2.3.0)
     nokogiri (1.8.2)
       mini_portile2 (~> 2.3.0)
+    nokogiri (1.8.2-x64-mingw32)
+      mini_portile2 (~> 2.3.0)
 
 PLATFORMS
   ruby
+  x64-mingw32
 
 DEPENDENCIES
   nokogiri

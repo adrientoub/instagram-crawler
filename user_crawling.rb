@@ -1,6 +1,5 @@
 require 'fileutils'
 require 'nokogiri'
-require 'awesome_print'
 require 'date'
 require_relative './common'
 
@@ -16,7 +15,7 @@ def download_user_info(username)
   parsed_html = Nokogiri::HTML(user_html)
   user_json = nil
   parsed_html.css('script').each do |script|
-    user_json = script.content if script.content =~ /window._sharedData/
+    user_json = script.content if script.content =~ /window._sharedData =/
   end
   if user_json.nil?
     Common.warn "Impossible to download user info for #{username}."
