@@ -141,11 +141,11 @@ class Common
         @logger.warn "Downloading #{uri} ended in #{response.code}. Retrying #{try} times."
         if response.code.to_i == 429
           sleep 7
-          return download(uri, use_cookie, 20, false) if first
+          return download(uri, use_cookie, 20, false, data: data) if first
         else
           sleep 1
         end
-        download(uri, use_cookie, try - 1, first)
+        download(uri, use_cookie, try - 1, first, data: data)
       else
         response.body
       end
@@ -156,7 +156,7 @@ class Common
     if try > 0
       @logger.warn "Downloading #{uri} ended in #{e}. Retrying #{try} times."
       sleep 1
-      download(uri, use_cookie, try - 1, first)
+      download(uri, use_cookie, try - 1, first, data: data)
     else
       ""
     end
