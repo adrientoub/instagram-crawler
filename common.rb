@@ -3,10 +3,10 @@ require 'logger'
 require 'json'
 
 class Common
-  def self.call_api(uri, use_cookie = false)
+  def self.call_api(uri, use_cookie = false, data = nil)
     return if uri.nil?
 
-    user_call = download(uri, use_cookie)
+    user_call = download(uri, use_cookie, data: data)
     JSON.parse(user_call)
   rescue JSON::ParserError => e
     @logger.warn "JSON parsing failed for URI: #{uri}, not retrying."
@@ -120,14 +120,21 @@ class Common
 
   private
 
-  def self.download(uri, use_cookie = false, try = 3, first = true)
-    response = if ENV['COOKIE'] && use_cookie
-      http = Net::HTTP.new(uri.hostname, uri.port)
-      http.use_ssl = true
-      http.get(uri, 'Cookie' => ENV['COOKIE'])
-    else
-      Net::HTTP.get_response uri
+  def self.download(uri, use_cookie = false, try = 3, first = true, data: nil)
+    headers = {
+      'X-Requested-With' => 'XMLHttpRequest',
+      'User-Agent' => "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:60.0) Gecko/20100101 Firefox/60.0"
+    }
+    if ENV['COOKIE'] && use_cookie
+      headers['Cookie'] = ENV['COOKIE']
     end
+    if data
+      headers['Referrer'] = "https://www.instagram.com/#{data[:user]}/"
+      headers['X-Instagram-GIS'] = data[:gis]
+    end
+    http = Net::HTTP.new(uri.hostname, uri.port)
+    http.use_ssl = true
+    response = http.get(uri, headers)
 
     if response.code.to_i >= 399
       if try > 0

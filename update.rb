@@ -33,7 +33,7 @@ def update_users
     next if filename[0] == '.' || filename[0] == '#'
 
     if File.directory?(filename)
-      download_user(filename)
+      download_user(filename, true)
     end
   end
 end

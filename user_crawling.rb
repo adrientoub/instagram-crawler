@@ -1,6 +1,7 @@
 require 'fileutils'
 require 'nokogiri'
 require 'date'
+require 'digest'
 require_relative './common'
 
 def user_url(username)
@@ -8,6 +9,14 @@ def user_url(username)
 rescue URI::InvalidURIError
   Common.error "Invalid username #{username}"
   nil
+end
+
+def variables(user_id, end_cursor)
+  vars = "{\"id\":\"#{user_id}\",\"first\":12,\"after\":\"#{end_cursor}\"}"
+end
+
+def next_page_url(vars)
+  URI "https://www.instagram.com/graphql/query/?query_hash=42323d64886122307be10013ad2dcc44&variables=#{vars}"
 end
 
 def download_user_info(username)
@@ -21,6 +30,7 @@ def download_user_info(username)
     Common.warn "Impossible to download user info for #{username}."
     return
   end
+
   user_json = user_json.sub('window._sharedData = ', '')[0..-2]
   parsed = JSON.parse(user_json)
   if parsed['entry_data'].empty?
@@ -42,13 +52,41 @@ def download_user_info(username)
       Common.download_node(node['node'], folder, nil, false)
     end
 
-    [user_info['id'], false]
+    page_info = user_info['edge_owner_to_timeline_media']['page_info']
+    [user_info['id'], page_info['has_next_page'], page_info['end_cursor'], parsed['rhx_gis']]
   end
 end
 
-def download_user(username)
+def download_user_media(user_id, end_cursor, username, gis)
+  vars = variables(user_id, end_cursor)
+
+  new_gis = Digest::MD5.hexdigest("#{gis}:#{vars}")
+
+  medias = Common.call_api(next_page_url(vars), false, { user: username, gis: new_gis })
+  user = medias['data']['user']
+
+  folder = username + '/'
+
+  nodes = user['edge_owner_to_timeline_media']['edges']
+  nodes.each do |node|
+    Common.download_node(node['node'], folder, nil, false)
+  end
+  page_info = user['edge_owner_to_timeline_media']['page_info']
+
+  [page_info['has_next_page'], page_info['end_cursor']]
+end
+
+def download_user(username, update = false)
   Common.info "Downloading #{username}"
   next_page = nil
-  size = 0
-  download_user_info(username)
+
+  user_id, has_next_page, end_cursor, gis = download_user_info(username)
+  return if update
+  size = 12
+
+  while has_next_page
+    size += 12
+    has_next_page, end_cursor = download_user_media(user_id, end_cursor, username, gis)
+    Common.info "Queued #{size} media for #{username}."
+  end
 end
