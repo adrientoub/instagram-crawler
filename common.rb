@@ -144,10 +144,10 @@ class Common
       if try > 0
         self.warn "Downloading #{uri} ended in #{response.code}. Retrying #{try} times."
         if response.code.to_i == 429
-          sleep 7
+          sleep 30
           return download(uri, use_cookie, 20, false, data: data) if first
         else
-          sleep 1
+          sleep 5
         end
         download(uri, use_cookie, try - 1, first, data: data)
       else
