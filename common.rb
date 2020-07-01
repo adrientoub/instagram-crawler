@@ -9,11 +9,11 @@ class Common
     user_call = download(uri, use_cookie, data: data)
     JSON.parse(user_call)
   rescue JSON::ParserError => e
-    @logger.warn "JSON parsing failed for URI: #{uri}, not retrying."
+    self.warn "JSON parsing failed for URI: #{uri}, not retrying."
     nil
   rescue => e
-    @logger.warn "Download failed for URI: #{uri} (#{e}) retrying"
-    sleep 1
+    self.warn "Download failed for URI: #{uri} (#{e}) retrying"
+    sleep 10
     retry
   end
 
@@ -41,7 +41,8 @@ class Common
   def self.initialize_downloads(thread_count)
     @start = Time.now
     @semaphore = Mutex.new
-    @logger = Logger.new(STDOUT)
+    @logger_file = Logger.new('downloads.log', 'weekly')
+    @logger_std = Logger.new(STDOUT)
     @downloads = []
     @done = false
     @threads = []
@@ -107,15 +108,18 @@ class Common
   end
 
   def self.info(str)
-    @logger.info str
+    @logger_file.info str
+    @logger_std.info str
   end
 
   def self.error(str)
-    @logger.error str
+    @logger_file.error str
+    @logger_std.error str
   end
 
   def self.warn(str)
-    @logger.warn str
+    @logger_file.warn str
+    @logger_std.warn str
   end
 
   private
@@ -138,7 +142,7 @@ class Common
 
     if response.code.to_i >= 399
       if try > 0
-        @logger.warn "Downloading #{uri} ended in #{response.code}. Retrying #{try} times."
+        self.warn "Downloading #{uri} ended in #{response.code}. Retrying #{try} times."
         if response.code.to_i == 429
           sleep 7
           return download(uri, use_cookie, 20, false, data: data) if first
@@ -154,7 +158,7 @@ class Common
     end
   rescue => e
     if try > 0
-      @logger.warn "Downloading #{uri} ended in #{e}. Retrying #{try} times."
+      self.warn "Downloading #{uri} ended in #{e}. Retrying #{try} times."
       sleep 1
       download(uri, use_cookie, try - 1, first, data: data)
     else
