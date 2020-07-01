@@ -29,11 +29,16 @@ end
 def update_users
   list = Dir.entries('.')
   puts 'Updating all already downloaded users'
+  users_list = []
   list.each do |filename|
-    next if filename[0] == '.' || filename[0] == '#'
+    next if filename[0] == '.' || filename[0] == '#' || filename[0] == '_'
 
     if File.directory?(filename)
-      download_user(filename, true)
+      users_list << filename
     end
+  end
+
+  users_list.shuffle.each do |username|
+    download_user(username, true)
   end
 end
