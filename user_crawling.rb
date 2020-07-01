@@ -37,7 +37,11 @@ def download_user_info(username)
     Common.warn "The user #{username} doesn't exist."
     return
   end
-  user_info = parsed['entry_data']['ProfilePage'].first['graphql']['user']
+  user_info = parsed.dig('entry_data', 'ProfilePage', 0, 'graphql', 'user')
+  if user_info.nil?
+    Common.warn "Error retrieving info about user #{username}."
+    return
+  end
   Common.info "Found #{user_info['edge_owner_to_timeline_media']['count']} media for #{username}."
 
   folder = username + '/'
