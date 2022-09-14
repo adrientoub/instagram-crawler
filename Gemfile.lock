@@ -2,10 +2,10 @@ GEM
   remote: https://rubygems.org/
   specs:
     mini_portile2 (2.8.0)
-    nokogiri (1.13.6)
+    nokogiri (1.13.8)
       mini_portile2 (~> 2.8.0)
       racc (~> 1.4)
-    nokogiri (1.13.6-x64-mingw32)
+    nokogiri (1.13.8-x64-mingw32)
       racc (~> 1.4)
     racc (1.6.0)
 
@@ -17,4 +17,4 @@ DEPENDENCIES
   nokogiri
 
 BUNDLED WITH
-   1.16.1
+   2.3.21
